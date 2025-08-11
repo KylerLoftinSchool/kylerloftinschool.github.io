@@ -1,2 +1,571 @@
-# kylerloftinschool.github.io
-Architext
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Architext Site Solver</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: #f9fafb;
+      color: #333;
+      padding: 40px 20px;
+      display: flex;
+      justify-content: center;
+    }
+    main {
+      width: 100%;
+      max-width: 720px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      padding: 40px 50px;
+    }
+    h2 {
+      margin-top: 0;
+      margin-bottom: 30px;
+      font-weight: 700;
+      font-size: 2rem;
+      color: #1a202c;
+      text-align: center;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #4a5568;
+      font-size: 1rem;
+    }
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 1.1rem;
+      border: 2px solid #cbd5e0;
+      border-radius: 6px;
+      transition: border-color 0.3s ease;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    input[type="text"]:focus:not(:disabled),
+    input[type="number"]:focus:not(:disabled),
+    select:focus:not(:disabled),
+    textarea:focus {
+      outline: none;
+      border-color: #3182ce;
+      box-shadow: 0 0 7px #3182ceaa;
+    }
+    input:disabled,
+    select:disabled {
+      background-color: #e2e8f0;
+      color: #a0aec0;
+      cursor: not-allowed;
+    }
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 14px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      background-color: #3182ce;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover:not(:disabled) {
+      background-color: #2c5282;
+    }
+    button:active:not(:disabled) {
+      background-color: #2a4365;
+    }
+    button:disabled {
+      background-color: #a0aec0;
+      cursor: not-allowed;
+    }
+    h3 {
+      margin-top: 40px;
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: #2d3748;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 8px;
+    }
+    pre {
+      background: #edf2f7;
+      border-radius: 6px;
+      padding: 18px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 1rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      margin-top: 15px;
+      min-height: 50px;
+      color: #2d3748;
+      box-shadow: inset 0 0 6px #cbd5e0;
+      user-select: text;
+    }
+    textarea#output {
+      resize: vertical;
+      min-height: 180px;
+    }
+    /* Modal Styles */
+    #infoModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      overflow: auto;
+      padding: 40px 20px;
+    }
+    #infoModalContent {
+      background: white;
+      border-radius: 8px;
+      padding: 25px 35px;
+      width: 90%;
+      max-width: 800px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      font-family: Consolas, monospace;
+      white-space: pre-wrap;
+      max-height: 80vh;
+      overflow-y: auto;
+      color: #1a202c;
+    }
+    #infoModalClose {
+      margin-top: 15px;
+      text-align: right;
+      font-size: 1rem;
+      color: #3182ce;
+      cursor: pointer;
+      user-select: none;
+    }
+    /* Layout for separated buildings input */
+    #buildingsSection {
+      margin-bottom: 30px;
+    }
+    /* Image display */
+    #generatedImage {
+      margin-top: 30px;
+      max-width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    #loadingText {
+      margin-top: 15px;
+      color: #3182ce;
+      font-weight: 600;
+      display: none;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h2>Architext Site Solver</h2>
+
+    <!-- Parcel Info Lookup -->
+    <section id="parcelLookupSection">
+      <h3>Parcel Info Lookup</h3>
+      <label for="addressInput">Enter address</label>
+      <input
+        type="text"
+        id="addressInput"
+        placeholder="e.g. 6 S Water St, Mobile, AL"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button onclick="lookupParcel()">Lookup</button>
+
+      <h3>Parcel Number:</h3>
+      <pre id="parcelNumberOutput"></pre>
+    </section>
+
+    <hr style="margin: 40px 0;" />
+
+    <div id="buildingsSection">
+      <label for="numBuildings">Number of Buildings (1–20)</label>
+      <input type="number" id="numBuildings" min="1" max="20" placeholder="Enter number of buildings" />
+    </div>
+
+    <label for="address">Building Address</label>
+    <input type="text" id="address" disabled />
+
+    <label for="acreage">Acreage (e.g. 2.35)</label>
+    <input type="text" id="acreage" disabled />
+
+    <label for="area">Area (sq ft)</label>
+    <input type="text" id="area" disabled />
+
+    <label for="length">Length (ft)</label>
+    <input type="text" id="length" disabled />
+
+    <label for="zoneType">Zone Type</label>
+    <select id="zoneType" disabled>
+      <option>Residential</option>
+      <option>High-Density Residential</option>
+      <option>Commercial</option>
+      <option>Mixed Use</option>
+    </select>
+
+    <button onclick="generatePlan()" disabled id="generateBtn">Generate Plan & Create Image</button>
+
+    <label for="output">Generated Site Plan</label>
+    <textarea id="output" rows="20" readonly></textarea>
+
+    <div id="loadingText">Generating image, please wait...</div>
+    <img id="generatedImage" alt="Generated site master plan visualization" style="display:none;" />
+  </main>
+
+  <!-- Modal -->
+  <div id="infoModal">
+    <div id="infoModalContent">
+      <div id="infoModalText">Loading info...</div>
+      <div id="infoModalClose" onclick="closeModal()">Close</div>
+    </div>
+  </div>
+
+<script>
+  let parcelInfo = null;
+
+  const numBuildingsInput = document.getElementById('numBuildings');
+  const addressField = document.getElementById('address');
+  const acreageField = document.getElementById('acreage');
+  const areaField = document.getElementById('area');
+  const lengthField = document.getElementById('length');
+  const zoneTypeSelect = document.getElementById('zoneType');
+  const generateBtn = document.getElementById('generateBtn');
+  const output = document.getElementById("output");
+  const loadingText = document.getElementById("loadingText");
+  const generatedImage = document.getElementById("generatedImage");
+
+  function disableFields() {
+    [addressField, acreageField, areaField, lengthField, zoneTypeSelect, generateBtn].forEach(f => {
+      f.disabled = true;
+      if (f.tagName !== 'SELECT') f.value = '';
+      else f.selectedIndex = 0;
+    });
+  }
+  disableFields();
+
+  function enableFields() {
+    [addressField, acreageField, areaField, lengthField, zoneTypeSelect, generateBtn].forEach(f => {
+      f.disabled = false;
+    });
+  }
+
+  numBuildingsInput.addEventListener('input', () => {
+    let val = parseInt(numBuildingsInput.value, 10);
+    if (!val || val < 1) {
+      numBuildingsInput.value = '';
+      disableFields();
+      return;
+    }
+    if (val > 20) {
+      numBuildingsInput.value = 20;
+      val = 20;
+    }
+    enableFields();
+    if (parcelInfo) {
+      fillFieldsFromParcelInfo(parcelInfo);
+    }
+  });
+
+  function fillFieldsFromParcelInfo(info) {
+    addressField.value = info.address !== "N/A" ? info.address : "";
+    acreageField.value = info.acreage !== "N/A" ? info.acreage : "";
+    areaField.value = info.area !== "N/A" ? info.area : "";
+    lengthField.value = info.length !== "N/A" ? info.length : "";
+    const zone = (info.zone_type ?? "").toLowerCase();
+    if (zone.includes("commercial")) zoneTypeSelect.selectedIndex = 2;
+    else if (zone.includes("high-density")) zoneTypeSelect.selectedIndex = 1;
+    else if (zone.includes("mixed")) zoneTypeSelect.selectedIndex = 3;
+    else zoneTypeSelect.selectedIndex = 0;
+  }
+
+  async function lookupParcel() {
+    const addressInput = document.getElementById("addressInput");
+    const parcelNumberOutput = document.getElementById("parcelNumberOutput");
+    const address = addressInput.value.trim();
+
+    parcelNumberOutput.textContent = "Looking up address...";
+    if (!address) {
+      parcelNumberOutput.textContent = "Please enter an address.";
+      return;
+    }
+
+    try {
+      const osmUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+      const osmRes = await fetch(osmUrl);
+      const osmData = await osmRes.json();
+      if (!osmData.length) {
+        parcelNumberOutput.textContent = "Address not found via OpenStreetMap.";
+        return;
+      }
+      const lat = osmData[0].lat;
+      const lon = osmData[0].lon;
+
+      const arcgisUrl = `https://services3.arcgis.com/AcvBA1fcgucsFQvO/arcgis/rest/services/PARCEL_DETAILS/FeatureServer/0/query` +
+        `?geometry=${lon},${lat}` +
+        `&geometryType=esriGeometryPoint` +
+        `&inSR=4326&spatialRel=esriSpatialRelIntersects` +
+        `&outFields=*` +
+        `&returnGeometry=false` +
+        `&f=json`;
+
+      const parcelRes = await fetch(arcgisUrl);
+      const parcelData = await parcelRes.json();
+
+      if (!parcelData.features || !parcelData.features.length) {
+        parcelNumberOutput.textContent = "No parcel information found for that location.";
+        return;
+      }
+
+      const props = parcelData.features[0].attributes;
+
+      parcelInfo = {
+        parcel_number: props.parcel ?? "N/A",
+        alt_parcel_id: props.ptext ?? "N/A",
+        address: props.address ?? "N/A",
+        acreage: props.acreage ?? "N/A",
+        area: props.Shape__Area ?? props.Shape_Area ?? "N/A",
+        length: props.Shape__Length ?? props.Shape_Leng ?? "N/A",
+        historical_district: props.historicdistrict ?? props.HISTORICDISTRIC ?? null,
+        sq_footage: props.sq_feet ?? props.SQ_FOOTAGE ?? "N/A",
+        zone_type: props.classcode_desc ?? "N/A"
+      };
+
+      parcelNumberOutput.textContent = parcelInfo.parcel_number;
+
+      let numBuildingsVal = parseInt(numBuildingsInput.value, 10);
+      if (numBuildingsVal >= 1 && numBuildingsVal <= 20) {
+        fillFieldsFromParcelInfo(parcelInfo);
+        enableFields();
+      } else {
+        disableFields();
+      }
+
+      output.value = "";
+      generatedImage.style.display = "none";
+
+      console.log("Stored Parcel Info:", parcelInfo);
+    } catch (err) {
+      parcelNumberOutput.textContent = "Error: " + err.message;
+    }
+  }
+
+  async function generatePlan() {
+    const address = addressField.value;
+    const acreage = acreageField.value;
+    const area = parseFloat(areaField.value);
+    const length = parseFloat(lengthField.value);
+    const zoneType = zoneTypeSelect.value;
+    const numBuildings = parseInt(numBuildingsInput.value);
+
+    if (!numBuildings || numBuildings < 1 || numBuildings > 20) {
+      output.value = "Please enter a valid number of buildings (1–20).";
+      return;
+    }
+    if (!area || isNaN(area) || !length || isNaN(length)) {
+      output.value = "Please ensure Area and Length fields contain valid numbers.";
+      return;
+    }
+
+    const width = (area / length).toFixed(2);
+    const buildingWidth = (width / numBuildings).toFixed(2);
+
+    let buildings = "";
+    for (let i = 1; i <= numBuildings; i++) {
+      buildings += `Building ${i}: ${buildingWidth}' x ${length}'\n`;
+    }
+
+    let buildingSize = (buildingWidth * 0.7).toFixed(2);
+    let buildingDepth = (length * 0.8).toFixed(2);
+    let buildingDesc = "";
+    let inclusionDesc = "";
+
+    const zoneLower = zoneType.toLowerCase();
+
+    if (zoneLower.includes("commercial")) {
+      buildingDesc = "Recommended commercial building (custom size).";
+      inclusionDesc = "- Parking lot included.\n";
+    } else if (zoneLower.includes("high-density")) {
+      buildingDesc = `Suggested multi-family housing (~${buildingSize}' x ${buildingDepth}')`;
+      inclusionDesc = "- Driveway included.\n- Sidewalk included.\n";
+    } else if (zoneLower.includes("mixed")) {
+      buildingDesc = `Suggested mixed-use building (~${buildingSize}' x ${buildingDepth}')`;
+      inclusionDesc = "- Driveway included.\n- Parking spaces included.\n";
+    } else {
+      buildingDesc = `Suggested 3 bed / 2 bath home (~${buildingSize}' x ${buildingDepth}')`;
+      inclusionDesc = "- Approx. 1-car driveway (10' x 20').\n";
+    }
+
+    let historicalNote = "";
+    if (parcelInfo && parcelInfo.historical_district && parcelInfo.historical_district.trim() !== "") {
+      historicalNote = "YES, In a historical designated area.";
+    } else {
+      historicalNote = "NO, Not in a historical designated area.";
+    }
+
+    const plan = `Site Master Plan
+
+Location: ${address}
+Zone: ${zoneType}
+Acreage: ${acreage}
+Area: ${area} sq ft
+Length: ${length} ft
+Historical District: ${historicalNote}
+
+Buildings:
+${buildings}
+Each building includes:
+${inclusionDesc}- ${buildingDesc}
+
+North is assumed to be up.
+`;
+
+    output.value = plan;
+
+    await generateImage(plan);
+  }
+
+  function summarizePlan(plan) {
+    const lines = plan.split('\n');
+    const summaryLines = [];
+
+    for (let line of lines) {
+      if (
+        line.startsWith("Location:") ||
+        line.startsWith("Zone:") ||
+        line.startsWith("Acreage:") ||
+        line.startsWith("Area:") ||
+        line.startsWith("Length:") ||
+        line.startsWith("Historical District:") ||
+        line.startsWith("Building ") ||
+        line.startsWith("-")
+      ) {
+        summaryLines.push(line);
+      }
+      if (summaryLines.length >= 12) break;
+    }
+
+    return summaryLines.join('\n');
+  }
+
+  async function generateImage(planText) {
+    loadingText.style.display = "block";
+    generatedImage.style.display = "none";
+    generatedImage.src = "";
+
+    const summary = summarizePlan(planText);
+
+    const prompt = `
+Generate exactly what is described in the site plan. Nothing more. Only generate the set amount of buildings. One building counts as a seperated structure. Generate a professional architectural site master plan in a top-down 2D view. Use only black, grey, and white colors. Show completed buildings with measurements (widths and lengths in feet). The style must be of a clean, minimalist blueprint or technical drawing with precise lines and legible text. Include only the number of buildings identified in the summary, if the numberofbuildings variable is 4, you must generate 4. Prior to sending the image, ensure there is the set amount of buildings. Strictly follow the details of the site plan.
+
+Details of the site plan:
+${summary}
+`.trim();
+
+    const truncatedPrompt = prompt.length > 1000 ? prompt.substring(0, 1000) : prompt;
+
+    try {
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer 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"
+        },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: truncatedPrompt,
+          n: 1,
+          size: "1024x1024"
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        output.value = "Image generation error: " + data.error.message;
+        loadingText.style.display = "none";
+        return;
+      }
+
+      const imageUrl = data.data[0].url;
+      generatedImage.src = imageUrl;
+      generatedImage.style.display = "block";
+    } catch (error) {
+      output.value = "Image generation error: " + error.message;
+    } finally {
+      loadingText.style.display = "none";
+    }
+  }
+
+  function closeModal() {
+    document.getElementById("infoModal").style.display = "none";
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key.toLowerCase() === 'y') {
+      e.preventDefault();
+      toggleDebugModal();
+    }
+  });
+
+  function toggleDebugModal() {
+    const modal = document.getElementById("infoModal");
+    if (modal.style.display === "flex") {
+      modal.style.display = "none";
+    } else {
+      modal.style.display = "flex";
+      updateDebugInfo();
+    }
+  }
+
+  function updateDebugInfo() {
+    const modalText = document.getElementById("infoModalText");
+    const numBuildingsVal = numBuildingsInput.value;
+    const addressVal = addressField.value;
+    const acreageVal = acreageField.value;
+    const areaVal = areaField.value;
+    const lengthVal = lengthField.value;
+    const zoneTypeVal = zoneTypeSelect.value;
+    const generatedText = output.value;
+
+    const debugInfo = `
+--- Development Debug Info ---
+
+parcelInfo Object:
+${JSON.stringify(parcelInfo, null, 2)}
+
+Form Inputs:
+- Number of Buildings: ${numBuildingsVal}
+- Address: ${addressVal}
+- Acreage: ${acreageVal}
+- Area: ${areaVal}
+- Length: ${lengthVal}
+- Zone Type: ${zoneTypeVal}
+
+Generated Plan Text:
+${generatedText}
+
+Image Element:
+- src: ${generatedImage.src}
+- visible: ${generatedImage.style.display !== "none"}
+
+Loading State:
+- loadingText visible: ${loadingText.style.display !== "none"}
+    `.trim();
+
+    modalText.textContent = debugInfo;
+  }
+</script>
+</body>
+</html>
