@@ -118,15 +118,11 @@
 
 <script>
   /**
-   * BACKEND CONFIG — IMPORTANT
-   * Set this to your Render service base URL (no trailing slash).
-   * The backend should expose:
-   *   POST /image  { prompt: string } → { url?: string, b64?: string, error?: string }
-   *     (Your Render server calls OpenAI with your secret key and returns either a hosted URL or base64 image.)
-   *
-   * Example Render URL: https://your-service.onrender.com
+   * THE FOLLOWING LINES CONTAINS A BACK-END API KEY HOLDING SERVER. 
+   * THIS IS USED SO THE API KEY NEVER IS SEEN ON THE USER-END OF THE BROWSER.
+   * THIS PREVENTS THE USER FROM SEEING THE SENSITIVE API KEY.
    */
-  const RENDER_BASE_URL = "https://your-service.onrender.com"; // ← REPLACE ME
+  const RENDER_BASE_URL = "https://openai-api-key-kx2c.onrender.com"; // ← THEY SERVER ADDRESS (USING RENDER)
 
   let parcelInfo = null;
 
