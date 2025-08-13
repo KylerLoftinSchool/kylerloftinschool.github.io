@@ -122,7 +122,7 @@
    * THIS IS USED SO THE API KEY NEVER IS SEEN ON THE USER-END OF THE BROWSER.
    * THIS PREVENTS THE USER FROM SEEING THE SENSITIVE API KEY.
    */
-  const RENDER_BASE_URL = "https://openai-api-key-kx2c.onrender.com"; // ← THEY SERVER ADDRESS (USING RENDER)
+  const RENDER_BASE_URL = "https://openai-api-key-kx2c.onrender.com"; // ← THE SERVER ADDRESS (USING RENDER)
 
   let parcelInfo = null;
 
@@ -344,7 +344,7 @@ North is assumed to be up.
 
     const summary = summarizePlan(planText);
 
-    // The prompt goes to YOUR backend (Render). Your key never touches the browser.
+    // The prompt goes to MY backend (Render). My key never touches the browser.
     const prompt = `
 Generate exactly what is described in the site plan. Nothing more. Only generate the set amount of buildings. One building counts as a separated structure. Generate a professional architectural site master plan in a top-down 2D view. Use only black, grey, and white colors. Show completed buildings with measurements (widths and lengths in feet). The style must be of a clean, minimalist blueprint or technical drawing with precise lines and legible text. Include only the number of buildings identified in the summary. Prior to sending the image, ensure there is the set amount of buildings. Strictly follow the details of the site plan.
 
