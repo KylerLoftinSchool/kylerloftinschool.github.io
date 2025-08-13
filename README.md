@@ -1,1 +1,1 @@
-Yes
+Welcome to Architext!
