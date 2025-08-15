@@ -12,7 +12,7 @@
     }
     main {
       width: 100%; max-width: 720px; background: white; border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 40px 50px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); padding: 40px 50px;
     }
     h2 { margin-top: 0; margin-bottom: 30px; font-weight: 700; font-size: 2rem; color: #1a202c; text-align: center; }
     label { display: block; font-weight: 600; margin-bottom: 10px; color: #4a5568; font-size: 1rem; }
@@ -32,37 +32,57 @@
     button:hover:not(:disabled) { background-color: #2c5282; }
     button:active:not(:disabled) { background-color: #2a4365; }
     button:disabled { background-color: #a0aec0; cursor: not-allowed; }
-    h3 { margin-top: 40px; font-weight: 700; font-size: 1.5rem; color: #2d3748; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+    h3 { margin-top: 40px; font-weight: 700; font-size: 1.25rem; color: #2d3748; }
     pre {
       background: #edf2f7; border-radius: 6px; padding: 18px; font-family: Consolas, Monaco, monospace;
-      font-size: 1rem; line-height: 1.5; white-space: pre-wrap; margin-top: 15px; min-height: 50px;
+      font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; margin-top: 10px; min-height: 50px;
       color: #2d3748; box-shadow: inset 0 0 6px #cbd5e0; user-select: text;
     }
     textarea#output { resize: vertical; min-height: 180px; }
 
-    /* Debug Modal */
+    /* Modal */
     #infoModal {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000;
       justify-content: center; align-items: center; overflow: auto; padding: 40px 20px;
     }
     #infoModalContent {
-      background: white; border-radius: 8px; padding: 25px 35px; width: 90%; max-width: 800px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.3); font-family: Consolas, monospace; white-space: pre-wrap;
-      max-height: 80vh; overflow-y: auto; color: #1a202c;
+      background: white; border-radius: 8px; padding: 25px 35px; width: 90%; max-width: 900px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.3); font-family: Consolas, monospace; white-space: normal;
+      max-height: 85vh; overflow-y: auto; color: #1a202c;
     }
     #infoModalClose { margin-top: 15px; text-align: right; font-size: 1rem; color: #3182ce; cursor: pointer; user-select: none; }
 
-    /* Broadcast Modal */
-    #broadcastModal {
-      display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1001;
-      align-items:center; justify-content:center; padding:40px 20px;
+    /* Modal layout for Debug + Broadcast */
+    .modal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
     }
-    #broadcastCard {
-      background:#fff; width:90%; max-width:560px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.3); padding:20px;
+    .card {
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
     }
-    #broadcastCard h3 { margin-top:0; }
-    #broadcastError { margin-top:10px; color:#e53e3e; display:none; }
+    .row { display: flex; gap: 10px; align-items: center; }
+    .row > * { flex: 1; }
+    .muted { color: #718096; font-size: 0.95rem; }
+    .error { color: #e53e3e; margin-top: 8px; display: none; }
+    .divider { height: 1px; background: #e2e8f0; margin: 16px 0; }
 
+    /* Broadcast feed list */
+    #broadcastFeed { list-style: none; padding: 0; margin: 0; }
+    #broadcastFeed li {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      line-height: 1.4;
+      font-size: 0.95rem;
+    }
+
+    /* Generated image + status */
     #generatedImage {
       margin-top: 30px; max-width: 100%; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,.2);
     }
@@ -120,208 +140,233 @@
     <img id="generatedImage" alt="Generated site master plan visualization" style="display:none;" />
   </main>
 
-  <!-- Debug Modal -->
+  <!-- Ctrl+Y Modal (now includes Broadcast Center) -->
   <div id="infoModal">
     <div id="infoModalContent">
-      <div id="infoModalText">Loading info...</div>
+      <div class="modal-grid">
+        <!-- Left: Development Debug Info -->
+        <div class="card">
+          <h3 style="margin-top:0;">Development Debug Info</h3>
+          <pre id="infoModalText">Loading info...</pre>
+          <div class="muted">Press Ctrl+Y (or Cmd+Y) again to close.</div>
+        </div>
+
+        <!-- Right: Broadcast Center -->
+        <div class="card">
+          <h3 style="margin-top:0;">Broadcast Center</h3>
+          <div class="row">
+            <textarea id="bcText" rows="4" placeholder="Type a message to broadcast to all active sessions..."></textarea>
+          </div>
+          <div class="row">
+            <input id="bcPass" type="password" placeholder="Admin passphrase" />
+          </div>
+          <div class="row">
+            <button id="bcSend">Send Broadcast</button>
+          </div>
+          <div id="bcError" class="error"></div>
+          <div class="divider"></div>
+          <div class="muted">Incoming broadcasts (most recent first):</div>
+          <ul id="broadcastFeed"></ul>
+        </div>
+      </div>
       <div id="infoModalClose" onclick="closeModal()">Close</div>
     </div>
   </div>
 
-  <!-- Broadcast Modal -->
-  <div id="broadcastModal">
-    <div id="broadcastCard">
-      <h3>Send Broadcast</h3>
-      <label style="display:block; font-weight:600; margin:.5rem 0;">Message</label>
-      <textarea id="broadcastText" rows="4" style="width:100%; padding:12px; border:2px solid #cbd5e0; border-radius:6px;"></textarea>
-      <label style="display:block; font-weight:600; margin:.5rem 0;">Passphrase</label>
-      <input id="broadcastPass" type="password" style="width:100%; padding:12px; border:2px solid #cbd5e0; border-radius:6px;" placeholder="Admin passphrase" />
-      <div style="display:flex; gap:10px; margin-top:14px;">
-        <button id="broadcastSend">Send</button>
-        <button id="broadcastCancel" style="background:#e2e8f0; color:#1a202c;">Cancel</button>
-      </div>
-      <div id="broadcastError"></div>
-      <p style="margin-top:10px; font-size:.9rem; color:#4a5568;">Tip: Open this with <strong>Ctrl+Shift+U</strong> or <strong>Cmd+Shift+U</strong>.</p>
-    </div>
-  </div>
-
   <!-- Socket.IO client -->
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
 
-  <script>
-    /* === All JavaScript: parcel lookup, plan generation, debug modal, Socket.IO, broadcast modal === */
+<script>
+  /**
+   * BACK-END API KEY HOLDING SERVER (Render).
+   * Your key never touches the browser.
+   */
+  const RENDER_BASE_URL = "https://openai-api-key-kx2c.onrender.com";
 
-    const RENDER_BASE_URL = "https://openai-api-key-kx2c.onrender.com";
+  let parcelInfo = null;
 
-    let parcelInfo = null;
+  // Form/control refs
+  const numBuildingsInput = document.getElementById('numBuildings');
+  const addressField = document.getElementById('address');
+  const acreageField = document.getElementById('acreage');
+  const areaField = document.getElementById('area');
+  const lengthField = document.getElementById('length');
+  const zoneTypeSelect = document.getElementById('zoneType');
+  const generateBtn = document.getElementById('generateBtn');
+  const output = document.getElementById("output");
+  const loadingText = document.getElementById("loadingText");
+  const generatedImage = document.getElementById("generatedImage");
 
-    const numBuildingsInput = document.getElementById('numBuildings');
-    const addressField = document.getElementById('address');
-    const acreageField = document.getElementById('acreage');
-    const areaField = document.getElementById('area');
-    const lengthField = document.getElementById('length');
-    const zoneTypeSelect = document.getElementById('zoneType');
-    const generateBtn = document.getElementById('generateBtn');
-    const output = document.getElementById("output");
-    const loadingText = document.getElementById("loadingText");
-    const generatedImage = document.getElementById("generatedImage");
+  // Modal refs
+  const infoModal = document.getElementById("infoModal");
+  const infoModalText = document.getElementById("infoModalText");
 
-    function disableFields() {
-      [addressField, acreageField, areaField, lengthField, zoneTypeSelect, generateBtn].forEach(f => {
-        f.disabled = true;
-        if (f.tagName !== 'SELECT') f.value = '';
-        else f.selectedIndex = 0;
-      });
-    }
-    disableFields();
+  // Broadcast UI refs (inside the Ctrl+Y modal)
+  const bcText = document.getElementById("bcText");
+  const bcPass = document.getElementById("bcPass");
+  const bcSend = document.getElementById("bcSend");
+  const bcError = document.getElementById("bcError");
+  const broadcastFeed = document.getElementById("broadcastFeed");
 
-    function enableFields() {
-      [addressField, acreageField, areaField, lengthField, zoneTypeSelect, generateBtn].forEach(f => { f.disabled = false; });
-    }
-
-    numBuildingsInput.addEventListener('input', () => {
-      let val = parseInt(numBuildingsInput.value, 10);
-      if (!val || val < 1) {
-        numBuildingsInput.value = '';
-        disableFields();
-        return;
-      }
-      if (val > 20) { numBuildingsInput.value = 20; val = 20; }
-      enableFields();
-      if (parcelInfo) fillFieldsFromParcelInfo(parcelInfo);
+  // ========== Field enable/disable ==========
+  function disableFields() {
+    [addressField, acreageField, areaField, lengthField, zoneTypeSelect, generateBtn].forEach(f => {
+      f.disabled = true;
+      if (f.tagName !== 'SELECT') f.value = '';
+      else f.selectedIndex = 0;
     });
+  }
+  disableFields();
 
-    function fillFieldsFromParcelInfo(info) {
-      addressField.value = info.address !== "N/A" ? info.address : "";
-      acreageField.value = info.acreage !== "N/A" ? info.acreage : "";
-      areaField.value = info.area !== "N/A" ? info.area : "";
-      lengthField.value = info.length !== "N/A" ? info.length : "";
-      const zone = (info.zone_type ?? "").toLowerCase();
-      if (zone.includes("commercial")) zoneTypeSelect.selectedIndex = 2;
-      else if (zone.includes("high-density")) zoneTypeSelect.selectedIndex = 1;
-      else if (zone.includes("mixed")) zoneTypeSelect.selectedIndex = 3;
-      else zoneTypeSelect.selectedIndex = 0;
+  function enableFields() {
+    [addressField, acreageField, areaField, lengthField, zoneTypeSelect, generateBtn].forEach(f => { f.disabled = false; });
+  }
+
+  numBuildingsInput.addEventListener('input', () => {
+    let val = parseInt(numBuildingsInput.value, 10);
+    if (!val || val < 1) {
+      numBuildingsInput.value = '';
+      disableFields();
+      return;
     }
+    if (val > 20) { numBuildingsInput.value = 20; val = 20; }
+    enableFields();
+    if (parcelInfo) fillFieldsFromParcelInfo(parcelInfo);
+  });
 
-    async function lookupParcel() {
-      const addressInput = document.getElementById("addressInput");
-      const parcelNumberOutput = document.getElementById("parcelNumberOutput");
-      const address = addressInput.value.trim();
+  function fillFieldsFromParcelInfo(info) {
+    addressField.value = info.address !== "N/A" ? info.address : "";
+    acreageField.value = info.acreage !== "N/A" ? info.acreage : "";
+    areaField.value = info.area !== "N/A" ? info.area : "";
+    lengthField.value = info.length !== "N/A" ? info.length : "";
+    const zone = (info.zone_type ?? "").toLowerCase();
+    if (zone.includes("commercial")) zoneTypeSelect.selectedIndex = 2;
+    else if (zone.includes("high-density")) zoneTypeSelect.selectedIndex = 1;
+    else if (zone.includes("mixed")) zoneTypeSelect.selectedIndex = 3;
+    else zoneTypeSelect.selectedIndex = 0;
+  }
 
-      parcelNumberOutput.textContent = "Looking up address...";
-      if (!address) { parcelNumberOutput.textContent = "Please enter an address."; return; }
+  // ========== Parcel Lookup ==========
+  async function lookupParcel() {
+    const addressInput = document.getElementById("addressInput");
+    const parcelNumberOutput = document.getElementById("parcelNumberOutput");
+    const address = addressInput.value.trim();
 
-      try {
-        const osmUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
-        const osmRes = await fetch(osmUrl);
-        const osmData = await osmRes.json();
-        if (!osmData.length) { parcelNumberOutput.textContent = "Address not found via OpenStreetMap."; return; }
-        const lat = osmData[0].lat;
-        const lon = osmData[0].lon;
+    parcelNumberOutput.textContent = "Looking up address...";
+    if (!address) { parcelNumberOutput.textContent = "Please enter an address."; return; }
 
-        const arcgisUrl = `https://services3.arcgis.com/AcvBA1fcgucsFQvO/arcgis/rest/services/PARCEL_DETAILS/FeatureServer/0/query` +
-          `?geometry=${lon},${lat}` +
-          `&geometryType=esriGeometryPoint` +
-          `&inSR=4326&spatialRel=esriSpatialRelIntersects` +
-          `&outFields=*` +
-          `&returnGeometry=false` +
-          `&f=json`;
+    try {
+      const osmUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+      const osmRes = await fetch(osmUrl);
+      const osmData = await osmRes.json();
+      if (!osmData.length) { parcelNumberOutput.textContent = "Address not found via OpenStreetMap."; return; }
+      const lat = osmData[0].lat;
+      const lon = osmData[0].lon;
 
-        const parcelRes = await fetch(arcgisUrl);
-        const parcelData = await parcelRes.json();
+      const arcgisUrl = `https://services3.arcgis.com/AcvBA1fcgucsFQvO/arcgis/rest/services/PARCEL_DETAILS/FeatureServer/0/query` +
+        `?geometry=${lon},${lat}` +
+        `&geometryType=esriGeometryPoint` +
+        `&inSR=4326&spatialRel=esriSpatialRelIntersects` +
+        `&outFields=*` +
+        `&returnGeometry=false` +
+        `&f=json`;
 
-        if (!parcelData.features || !parcelData.features.length) {
-          parcelNumberOutput.textContent = "No parcel information found for that location. Ensure it is an address in Mobile, AL.";
-          return;
-        }
+      const parcelRes = await fetch(arcgisUrl);
+      const parcelData = await parcelRes.json();
 
-        const props = parcelData.features[0].attributes;
-
-        parcelInfo = {
-          parcel_number: props.parcel ?? "N/A",
-          alt_parcel_id: props.ptext ?? "N/A",
-          address: props.address ?? "N/A",
-          acreage: props.acreage ?? "N/A",
-          area: props.Shape__Area ?? props.Shape_Area ?? "N/A",
-          length: props.Shape__Length ?? props.Shape_Leng ?? "N/A",
-          historical_district: props.historicdistrict ?? props.HISTORICDISTRIC ?? null,
-          sq_footage: props.sq_feet ?? props.SQ_FOOTAGE ?? "N/A",
-          zone_type: props.classcode_desc ?? "N/A"
-        };
-
-        parcelNumberOutput.textContent = parcelInfo.parcel_number;
-
-        let numBuildingsVal = parseInt(numBuildingsInput.value, 10);
-        if (numBuildingsVal >= 1 && numBuildingsVal <= 20) {
-          fillFieldsFromParcelInfo(parcelInfo);
-          enableFields();
-        } else {
-          disableFields();
-        }
-
-        output.value = "";
-        generatedImage.style.display = "none";
-
-        console.log("Stored Parcel Info:", parcelInfo);
-      } catch (err) {
-        parcelNumberOutput.textContent = "Error: " + err.message;
-      }
-    }
-
-    async function generatePlan() {
-      const address = addressField.value;
-      const acreage = acreageField.value;
-      const area = parseFloat(areaField.value);
-      const length = parseFloat(lengthField.value);
-      const zoneType = zoneTypeSelect.value;
-      const numBuildings = parseInt(numBuildingsInput.value);
-
-      if (!numBuildings || numBuildings < 1 || numBuildings > 20) {
-        output.value = "Please enter a valid number of buildings (1–20).";
-        return;
-      }
-      if (!area || isNaN(area) || !length || isNaN(length)) {
-        output.value = "Please ensure Area and Length fields contain valid numbers.";
+      if (!parcelData.features || !parcelData.features.length) {
+        parcelNumberOutput.textContent = "No parcel information found for that location. Ensure it is an address in Mobile, AL.";
         return;
       }
 
-      const width = (area / length).toFixed(2);
-      const buildingWidth = (width / numBuildings).toFixed(2);
+      const props = parcelData.features[0].attributes;
 
-      let buildings = "";
-      for (let i = 1; i <= numBuildings; i++) {
-        buildings += `Building ${i}: ${buildingWidth}' x ${length}'\n`;
-      }
+      parcelInfo = {
+        parcel_number: props.parcel ?? "N/A",
+        alt_parcel_id: props.ptext ?? "N/A",
+        address: props.address ?? "N/A",
+        acreage: props.acreage ?? "N/A",
+        area: props.Shape__Area ?? props.Shape_Area ?? "N/A",
+        length: props.Shape__Length ?? props.Shape_Leng ?? "N/A",
+        historical_district: props.historicdistrict ?? props.HISTORICDISTRIC ?? null,
+        sq_footage: props.sq_feet ?? props.SQ_FOOTAGE ?? "N/A",
+        zone_type: props.classcode_desc ?? "N/A"
+      };
 
-      let buildingSize = (buildingWidth * 0.7).toFixed(2);
-      let buildingDepth = (length * 0.8).toFixed(2);
-      let buildingDesc = "";
-      let inclusionDesc = "";
+      parcelNumberOutput.textContent = parcelInfo.parcel_number;
 
-      const zoneLower = zoneType.toLowerCase();
-
-      if (zoneLower.includes("commercial")) {
-        buildingDesc = "Recommended commercial building (custom size).";
-        inclusionDesc = "- Parking lot included.\n";
-      } else if (zoneLower.includes("high-density")) {
-        buildingDesc = `Suggested multi-family housing (~${buildingSize}' x ${buildingDepth}')`;
-        inclusionDesc = "- Driveway included.\n- Sidewalk included.\n";
-      } else if (zoneLower.includes("mixed")) {
-        buildingDesc = `Suggested mixed-use building (~${buildingSize}' x ${buildingDepth}')`;
-        inclusionDesc = "- Driveway included.\n- Parking spaces included.\n";
+      let numBuildingsVal = parseInt(numBuildingsInput.value, 10);
+      if (numBuildingsVal >= 1 && numBuildingsVal <= 20) {
+        fillFieldsFromParcelInfo(parcelInfo);
+        enableFields();
       } else {
-        buildingDesc = `Suggested 3 bed / 2 bath home (~${buildingSize}' x ${buildingDepth}')`;
-        inclusionDesc = "- Approx. 1-car driveway (10' x 20').\n";
+        disableFields();
       }
 
-      let historicalNote = "";
-      if (parcelInfo && parcelInfo.historical_district && parcelInfo.historical_district.trim() !== "") {
-        historicalNote = "YES, In a historical designated area.";
-      } else {
-        historicalNote = "NO, Not in a historical designated area.";
-      }
+      output.value = "";
+      generatedImage.style.display = "none";
 
-      const plan = `Site Master Plan
+      console.log("Stored Parcel Info:", parcelInfo);
+    } catch (err) {
+      parcelNumberOutput.textContent = "Error: " + err.message;
+    }
+  }
+
+  // ========== Plan Gen + Image ==========
+  async function generatePlan() {
+    const address = addressField.value;
+    const acreage = acreageField.value;
+    const area = parseFloat(areaField.value);
+    const length = parseFloat(lengthField.value);
+    const zoneType = zoneTypeSelect.value;
+    const numBuildings = parseInt(numBuildingsInput.value);
+
+    if (!numBuildings || numBuildings < 1 || numBuildings > 20) {
+      output.value = "Please enter a valid number of buildings (1–20).";
+      return;
+    }
+    if (!area || isNaN(area) || !length || isNaN(length)) {
+      output.value = "Please ensure Area and Length fields contain valid numbers.";
+      return;
+    }
+
+    const width = (area / length).toFixed(2);
+    const buildingWidth = (width / numBuildings).toFixed(2);
+
+    let buildings = "";
+    for (let i = 1; i <= numBuildings; i++) {
+      buildings += `Building ${i}: ${buildingWidth}' x ${length}'\n`;
+    }
+
+    let buildingSize = (buildingWidth * 0.7).toFixed(2);
+    let buildingDepth = (length * 0.8).toFixed(2);
+    let buildingDesc = "";
+    let inclusionDesc = "";
+
+    const zoneLower = zoneType.toLowerCase();
+
+    if (zoneLower.includes("commercial")) {
+      buildingDesc = "Recommended commercial building (custom size).";
+      inclusionDesc = "- Parking lot included.\n";
+    } else if (zoneLower.includes("high-density")) {
+      buildingDesc = `Suggested multi-family housing (~${buildingSize}' x ${buildingDepth}')`;
+      inclusionDesc = "- Driveway included.\n- Sidewalk included.\n";
+    } else if (zoneLower.includes("mixed")) {
+      buildingDesc = `Suggested mixed-use building (~${buildingSize}' x ${buildingDepth}')`;
+      inclusionDesc = "- Driveway included.\n- Parking spaces included.\n";
+    } else {
+      buildingDesc = `Suggested 3 bed / 2 bath home (~${buildingSize}' x ${buildingDepth}')`;
+      inclusionDesc = "- Approx. 1-car driveway (10' x 20').\n";
+    }
+
+    let historicalNote = "";
+    if (parcelInfo && parcelInfo.historical_district && parcelInfo.historical_district.trim() !== "") {
+      historicalNote = "YES, In a historical designated area.";
+    } else {
+      historicalNote = "NO, Not in a historical designated area.";
+    }
+
+    const plan = `Site Master Plan
 
 Location: ${address}
 Zone: ${zoneType}
@@ -338,162 +383,220 @@ ${inclusionDesc}- ${buildingDesc}
 North is assumed to be up.
 `;
 
-      output.value = plan;
+    output.value = plan;
 
-      await generateImage(plan);
+    await generateImage(plan);
+  }
+
+  function summarizePlan(plan) {
+    const lines = plan.split('\n');
+    const summaryLines = [];
+
+    for (let line of lines) {
+      if (
+        line.startsWith("Location:") ||
+        line.startsWith("Zone:") ||
+        line.startsWith("Acreage:") ||
+        line.startsWith("Area:") ||
+        line.startsWith("Length:") ||
+        line.startsWith("Historical District:") ||
+        line.startsWith("Building ") ||
+        line.startsWith("-")
+      ) {
+        summaryLines.push(line);
+      }
+      if (summaryLines.length >= 12) break;
     }
 
-    function summarizePlan(plan) {
-      const lines = plan.split('\n');
-      const summaryLines = [];
+    return summaryLines.join('\n');
+  }
 
-      for (let line of lines) {
-        if (
-          line.startsWith("Location:") ||
-          line.startsWith("Zone:") ||
-          line.startsWith("Acreage:") ||
-          line.startsWith("Area:") ||
-          line.startsWith("Length:") ||
-          line.startsWith("Buildings:") ||
-          line.startsWith("Historical District:") ||
-          line.startsWith("Each building includes:") ||
-          line.trim().startsWith("- ")
-        ) {
-          summaryLines.push(line);
-        }
+  async function generateImage(planText) {
+    loadingText.style.display = "block";
+    generatedImage.style.display = "none";
+    generatedImage.src = "";
+
+    const summary = summarizePlan(planText);
+
+    const prompt = `
+Generate exactly what is described in the site plan. Nothing more. Only generate the set amount of buildings. One building counts as a separated structure. Generate a professional architectural site master plan in a top-down 2D view. Use only black, grey, and white colors. Show completed buildings with measurements (widths and lengths in feet). The style must be of a clean, minimalist blueprint or technical drawing with precise lines and legible text. Include only the number of buildings identified in the summary. Prior to sending the image, ensure there is the set amount of buildings. Strictly follow the details of the site plan.
+
+Details of the site plan:
+${summary}
+`.trim();
+
+    const truncatedPrompt = prompt.length > 3000 ? prompt.substring(0, 3000) : prompt;
+
+    try {
+      const res = await fetch(`${RENDER_BASE_URL}/image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: truncatedPrompt })
+      });
+
+      if (!res.ok) {
+        const msg = `Backend error (${res.status}). Check:
+- RENDER_BASE_URL is correct
+- Render CORS ALLOWED_ORIGIN matches your GitHub Pages URL
+- /image endpoint exists and returns {url or b64}`;
+        output.value = msg;
+        return;
       }
 
-      return summaryLines.join('\n');
-    }
+      const data = await res.json();
 
-    async function generateImage(plan) {
-      loadingText.style.display = "block";
-      generatedImage.style.display = "none";
-      generatedImage.src = "";
-
-      const prompt = `Draw a simple black and white site plan. Use only black lines on white background. ${summarizePlan(plan)}`;
-
-      try {
-        const res = await fetch(`${RENDER_BASE_URL}/generate-image`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt })
-        });
-
-        if (!res.ok) throw new Error(await res.text());
-        const data = await res.json();
-
-        if (!data.imageUrl) throw new Error("No image URL returned.");
-
-        generatedImage.src = data.imageUrl;
-        generatedImage.style.display = "block";
-      } catch (err) {
-        console.error("Image generation error:", err);
-        output.value += `\n[Image generation error: ${err.message}]`;
-      } finally {
-        loadingText.style.display = "none";
+      if (data.error) {
+        output.value = "Image generation error: " + data.error;
+        return;
       }
-    }
 
-    /* === Debug Modal Hotkey: Ctrl/Cmd+Y === */
-    const infoModal = document.getElementById("infoModal");
-    const infoModalText = document.getElementById("infoModalText");
-
-    function openModal() {
-      if (!parcelInfo) { alert("No parcel data stored."); return; }
-      infoModalText.textContent = JSON.stringify(parcelInfo, null, 2);
-      infoModal.style.display = "flex";
-    }
-    function closeModal() { infoModal.style.display = "none"; }
-
-    window.addEventListener("keydown", function(e) {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
-        e.preventDefault();
-        openModal();
+      if (data.url) {
+        generatedImage.src = data.url;
+      } else if (data.b64) {
+        generatedImage.src = `data:image/png;base64,${data.b64}`;
+      } else {
+        output.value = "Image generation error: backend did not return url or b64.";
+        return;
       }
-    });
 
-    /* === Broadcast Modal === */
-    const broadcastModal = document.getElementById("broadcastModal");
-    const broadcastSendBtn = document.getElementById("broadcastSend");
-    const broadcastCancelBtn = document.getElementById("broadcastCancel");
-    const broadcastText = document.getElementById("broadcastText");
-    const broadcastPass = document.getElementById("broadcastPass");
-    const broadcastError = document.getElementById("broadcastError");
-
-    function openBroadcastModal() {
-      broadcastText.value = "";
-      broadcastPass.value = "";
-      broadcastError.style.display = "none";
-      broadcastModal.style.display = "flex";
-      broadcastText.focus();
+      generatedImage.style.display = "block";
+    } catch (error) {
+      output.value = "Image generation error: " + error.message;
+    } finally {
+      loadingText.style.display = "none";
     }
+  }
 
-    function closeBroadcastModal() { broadcastModal.style.display = "none"; }
+  // ========== Ctrl/Cmd+Y modal open/close ==========
+  function openModal() {
+    infoModal.style.display = "flex";
+    updateDebugInfo();
+    // Focus broadcast textarea for quick send
+    setTimeout(() => bcText && bcText.focus(), 0);
+  }
+  function closeModal() { infoModal.style.display = "none"; }
 
-    broadcastCancelBtn.addEventListener("click", closeBroadcastModal);
-
-    broadcastSendBtn.addEventListener("click", async () => {
-      try {
-        const message = broadcastText.value.trim();
-        const passphrase = broadcastPass.value.trim();
-
-        if (!message || !passphrase) {
-          broadcastError.textContent = "Please fill in both fields.";
-          broadcastError.style.display = "block";
-          return;
-        }
-
-        const res = await fetch(`${RENDER_BASE_URL}/broadcast`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message, passphrase })
-        });
-
-        if (!res.ok) throw new Error(await res.text());
-
-        closeBroadcastModal();
-      } catch (err) {
-        broadcastError.textContent = err.message;
-        broadcastError.style.display = "block";
-      }
-    });
-
-    /* Hotkey: Ctrl/Cmd+Shift+U or Ctrl/Cmd+Alt+U */
-    function openBroadcastHotkeyHandler(e) {
-      const key = (e.key || "").toLowerCase();
-      const isCmd = e.metaKey;
-      const isCtrl = e.ctrlKey;
-      const primaryCombo = (isCmd || isCtrl) && e.shiftKey && key === "u";
-      const fallbackCombo = (isCmd || isCtrl) && e.altKey && key === "u";
-
-      if (primaryCombo || fallbackCombo) {
-        e.preventDefault();
-        e.stopPropagation();
-        openBroadcastModal();
-      }
+  // Support Ctrl+Y and Cmd+Y
+  document.addEventListener('keydown', (e) => {
+    const key = (e.key || "").toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && key === 'y') {
+      e.preventDefault();
+      if (infoModal.style.display === "flex") closeModal(); else openModal();
     }
-    window.addEventListener("keydown", openBroadcastHotkeyHandler, true);
+  });
 
-    /* === Socket.IO for real-time broadcast === */
-    const socket = io(RENDER_BASE_URL);
-    socket.on("broadcast", (msg) => {
-      const toast = document.createElement("div");
-      toast.textContent = msg;
-      toast.style.position = "fixed";
-      toast.style.bottom = "20px";
-      toast.style.left = "50%";
-      toast.style.transform = "translateX(-50%)";
-      toast.style.background = "#3182ce";
-      toast.style.color = "white";
-      toast.style.padding = "12px 20px";
-      toast.style.borderRadius = "6px";
-      toast.style.boxShadow = "0 4px 15px rgba(0,0,0,.2)";
-      toast.style.fontSize = "1rem";
-      toast.style.zIndex = "9999";
-      document.body.appendChild(toast);
-      setTimeout(() => { toast.remove(); }, 5000);
-    });
-  </script>
+  function updateDebugInfo() {
+    const numBuildingsVal = numBuildingsInput.value;
+    const addressVal = addressField.value;
+    const acreageVal = acreageField.value;
+    const areaVal = areaField.value;
+    const lengthVal = lengthField.value;
+    const zoneTypeVal = zoneTypeSelect.value;
+    const generatedText = output.value;
+
+    const debugInfo = `
+parcelInfo Object:
+${JSON.stringify(parcelInfo, null, 2)}
+
+Form Inputs:
+- Number of Buildings: ${numBuildingsVal}
+- Address: ${addressVal}
+- Acreage: ${acreageVal}
+- Area: ${areaVal}
+- Length: ${lengthVal}
+- Zone Type: ${zoneTypeVal}
+
+Generated Plan Text (truncated):
+${generatedText.slice(0, 1200)}
+    `.trim();
+
+    infoModalText.textContent = debugInfo;
+  }
+
+  // ========== Socket.IO realtime (listen + toast + feed) ==========
+  const socket = io(RENDER_BASE_URL, { transports: ["websocket", "polling"] });
+
+  socket.on("connect", () => {
+    // Optional: identify client
+    // socket.emit("hello", { ua: navigator.userAgent });
+  });
+
+  socket.on("broadcast", (payload) => {
+    // payload could be { text, ts } per server implementation
+    const text = typeof payload === "object" && payload?.text ? payload.text : String(payload);
+    const ts = typeof payload === "object" && payload?.ts ? payload.ts : Date.now();
+    addBroadcastToFeed(text, ts);
+    showToast(text);
+  });
+
+  function addBroadcastToFeed(text, ts) {
+    if (!broadcastFeed) return;
+    const li = document.createElement("li");
+    const time = new Date(ts).toLocaleString();
+    li.innerHTML = `<div style="font-weight:600;">${escapeHtml(text)}</div><div class="muted" style="margin-top:4px;">${time}</div>`;
+    // Prepend newest on top
+    broadcastFeed.insertBefore(li, broadcastFeed.firstChild);
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function showToast(msg) {
+    const bar = document.createElement("div");
+    bar.textContent = msg;
+    bar.style.cssText = `
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: 24px; max-width: 90vw;
+      background: #1a202c; color:#fff; padding: 12px 16px;
+      border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 2000;
+      font-weight:600; text-align:center;
+    `;
+    document.body.appendChild(bar);
+    setTimeout(() => {
+      bar.style.opacity = "0";
+      bar.style.transition = "opacity .4s ease";
+      setTimeout(() => bar.remove(), 400);
+    }, 4000);
+  }
+
+  // ========== Broadcast send (inside Ctrl+Y modal) ==========
+  bcSend.addEventListener("click", sendBroadcast);
+  bcText.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      sendBroadcast();
+    }
+  });
+
+  async function sendBroadcast() {
+    const text = (bcText.value || "").trim();
+    const passphrase = (bcPass.value || "").trim();
+    if (!text) { showBcError("Please enter a message."); return; }
+    if (!passphrase) { showBcError("Passphrase required."); return; }
+
+    try {
+      bcError.style.display = "none";
+      const res = await fetch(`${RENDER_BASE_URL}/broadcast`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, passphrase })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+      // Optimistically add to feed
+      addBroadcastToFeed(text, Date.now());
+      bcText.value = "";
+      showToast("Broadcast sent");
+    } catch (err) {
+      showBcError("Failed to send: " + err.message);
+    }
+  }
+
+  function showBcError(msg) {
+    bcError.textContent = msg;
+    bcError.style.display = "block";
+  }
+</script>
 </body>
 </html>
