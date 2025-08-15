@@ -202,7 +202,7 @@
       const parcelData = await parcelRes.json();
 
       if (!parcelData.features || !parcelData.features.length) {
-        parcelNumberOutput.textContent = "No parcel information found for that location.";
+        parcelNumberOutput.textContent = "No parcel information found for that location. Ensure it is an address in Mobile, AL.";
         return;
       }
 
