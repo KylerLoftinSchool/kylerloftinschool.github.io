@@ -32,57 +32,25 @@
     button:hover:not(:disabled) { background-color: #2c5282; }
     button:active:not(:disabled) { background-color: #2a4365; }
     button:disabled { background-color: #a0aec0; cursor: not-allowed; }
-    h3 { margin-top: 40px; font-weight: 700; font-size: 1.25rem; color: #2d3748; }
+    h3 { margin-top: 40px; font-weight: 700; font-size: 1.5rem; color: #2d3748; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
     pre {
       background: #edf2f7; border-radius: 6px; padding: 18px; font-family: Consolas, Monaco, monospace;
-      font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; margin-top: 10px; min-height: 50px;
+      font-size: 1rem; line-height: 1.5; white-space: pre-wrap; margin-top: 15px; min-height: 50px;
       color: #2d3748; box-shadow: inset 0 0 6px #cbd5e0; user-select: text;
     }
     textarea#output { resize: vertical; min-height: 180px; }
-
     /* Modal */
     #infoModal {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000;
       justify-content: center; align-items: center; overflow: auto; padding: 40px 20px;
     }
     #infoModalContent {
-      background: white; border-radius: 8px; padding: 25px 35px; width: 90%; max-width: 900px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.3); font-family: Consolas, monospace; white-space: normal;
-      max-height: 85vh; overflow-y: auto; color: #1a202c;
+      background: white; border-radius: 8px; padding: 25px 35px; width: 90%; max-width: 800px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.3); font-family: Consolas, monospace; white-space: pre-wrap;
+      max-height: 80vh; overflow-y: auto; color: #1a202c;
     }
     #infoModalClose { margin-top: 15px; text-align: right; font-size: 1rem; color: #3182ce; cursor: pointer; user-select: none; }
-
-    /* Modal layout for Debug + Broadcast */
-    .modal-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-    }
-    .card {
-      background: #f7fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 16px;
-    }
-    .row { display: flex; gap: 10px; align-items: center; }
-    .row > * { flex: 1; }
-    .muted { color: #718096; font-size: 0.95rem; }
-    .error { color: #e53e3e; margin-top: 8px; display: none; }
-    .divider { height: 1px; background: #e2e8f0; margin: 16px 0; }
-
-    /* Broadcast feed list */
-    #broadcastFeed { list-style: none; padding: 0; margin: 0; }
-    #broadcastFeed li {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 10px 12px;
-      margin-bottom: 10px;
-      line-height: 1.4;
-      font-size: 0.95rem;
-    }
-
-    /* Generated image + status */
+    #buildingsSection { margin-bottom: 30px; }
     #generatedImage {
       margin-top: 30px; max-width: 100%; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,.2);
     }
@@ -140,52 +108,24 @@
     <img id="generatedImage" alt="Generated site master plan visualization" style="display:none;" />
   </main>
 
-  <!-- Ctrl+Y Modal (now includes Broadcast Center) -->
+  <!-- Modal -->
   <div id="infoModal">
     <div id="infoModalContent">
-      <div class="modal-grid">
-        <!-- Left: Development Debug Info -->
-        <div class="card">
-          <h3 style="margin-top:0;">Development Debug Info</h3>
-          <pre id="infoModalText">Loading info...</pre>
-          <div class="muted">Press Ctrl+Y (or Cmd+Y) again to close.</div>
-        </div>
-
-        <!-- Right: Broadcast Center -->
-        <div class="card">
-          <h3 style="margin-top:0;">Broadcast Center</h3>
-          <div class="row">
-            <textarea id="bcText" rows="4" placeholder="Type a message to broadcast to all active sessions..."></textarea>
-          </div>
-          <div class="row">
-            <input id="bcPass" type="password" placeholder="Admin passphrase" />
-          </div>
-          <div class="row">
-            <button id="bcSend">Send Broadcast</button>
-          </div>
-          <div id="bcError" class="error"></div>
-          <div class="divider"></div>
-          <div class="muted">Incoming broadcasts (most recent first):</div>
-          <ul id="broadcastFeed"></ul>
-        </div>
-      </div>
+      <div id="infoModalText">Loading info...</div>
       <div id="infoModalClose" onclick="closeModal()">Close</div>
     </div>
   </div>
 
-  <!-- Socket.IO client -->
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
-
 <script>
   /**
-   * BACK-END API KEY HOLDING SERVER (Render).
-   * Your key never touches the browser.
+   * THE FOLLOWING LINES CONTAINS A BACK-END API KEY HOLDING SERVER. 
+   * THIS IS USED SO THE API KEY NEVER IS SEEN ON THE USER-END OF THE BROWSER.
+   * THIS PREVENTS THE USER FROM SEEING THE SENSITIVE API KEY.
    */
-  const RENDER_BASE_URL = "https://openai-api-key-kx2c.onrender.com";
+  const RENDER_BASE_URL = "https://openai-api-key-kx2c.onrender.com"; // ← THE SERVER ADDRESS (USING RENDER)
 
   let parcelInfo = null;
 
-  // Form/control refs
   const numBuildingsInput = document.getElementById('numBuildings');
   const addressField = document.getElementById('address');
   const acreageField = document.getElementById('acreage');
@@ -197,18 +137,6 @@
   const loadingText = document.getElementById("loadingText");
   const generatedImage = document.getElementById("generatedImage");
 
-  // Modal refs
-  const infoModal = document.getElementById("infoModal");
-  const infoModalText = document.getElementById("infoModalText");
-
-  // Broadcast UI refs (inside the Ctrl+Y modal)
-  const bcText = document.getElementById("bcText");
-  const bcPass = document.getElementById("bcPass");
-  const bcSend = document.getElementById("bcSend");
-  const bcError = document.getElementById("bcError");
-  const broadcastFeed = document.getElementById("broadcastFeed");
-
-  // ========== Field enable/disable ==========
   function disableFields() {
     [addressField, acreageField, areaField, lengthField, zoneTypeSelect, generateBtn].forEach(f => {
       f.disabled = true;
@@ -246,7 +174,6 @@
     else zoneTypeSelect.selectedIndex = 0;
   }
 
-  // ========== Parcel Lookup ==========
   async function lookupParcel() {
     const addressInput = document.getElementById("addressInput");
     const parcelNumberOutput = document.getElementById("parcelNumberOutput");
@@ -312,7 +239,6 @@
     }
   }
 
-  // ========== Plan Gen + Image ==========
   async function generatePlan() {
     const address = addressField.value;
     const acreage = acreageField.value;
@@ -418,6 +344,7 @@ North is assumed to be up.
 
     const summary = summarizePlan(planText);
 
+    // The prompt goes to MY backend (Render). My key never touches the browser.
     const prompt = `
 Generate exactly what is described in the site plan. Nothing more. Only generate the set amount of buildings. One building counts as a separated structure. Generate a professional architectural site master plan in a top-down 2D view. Use only black, grey, and white colors. Show completed buildings with measurements (widths and lengths in feet). The style must be of a clean, minimalist blueprint or technical drawing with precise lines and legible text. Include only the number of buildings identified in the summary. Prior to sending the image, ensure there is the set amount of buildings. Strictly follow the details of the site plan.
 
@@ -435,6 +362,7 @@ ${summary}
       });
 
       if (!res.ok) {
+        // Helpful message for common CORS/URL mistakes
         const msg = `Backend error (${res.status}). Check:
 - RENDER_BASE_URL is correct
 - Render CORS ALLOWED_ORIGIN matches your GitHub Pages URL
@@ -450,6 +378,7 @@ ${summary}
         return;
       }
 
+      // Support either {url} or {b64} from your backend
       if (data.url) {
         generatedImage.src = data.url;
       } else if (data.b64) {
@@ -467,25 +396,29 @@ ${summary}
     }
   }
 
-  // ========== Ctrl/Cmd+Y modal open/close ==========
-  function openModal() {
-    infoModal.style.display = "flex";
-    updateDebugInfo();
-    // Focus broadcast textarea for quick send
-    setTimeout(() => bcText && bcText.focus(), 0);
+  function closeModal() {
+    document.getElementById("infoModal").style.display = "none";
   }
-  function closeModal() { infoModal.style.display = "none"; }
 
-  // Support Ctrl+Y and Cmd+Y
   document.addEventListener('keydown', (e) => {
-    const key = (e.key || "").toLowerCase();
-    if ((e.ctrlKey || e.metaKey) && key === 'y') {
+    if (e.ctrlKey && e.key.toLowerCase() === 'y') {
       e.preventDefault();
-      if (infoModal.style.display === "flex") closeModal(); else openModal();
+      toggleDebugModal();
     }
   });
 
+  function toggleDebugModal() {
+    const modal = document.getElementById("infoModal");
+    if (modal.style.display === "flex") {
+      modal.style.display = "none";
+    } else {
+      modal.style.display = "flex";
+      updateDebugInfo();
+    }
+  }
+
   function updateDebugInfo() {
+    const modalText = document.getElementById("infoModalText");
     const numBuildingsVal = numBuildingsInput.value;
     const addressVal = addressField.value;
     const acreageVal = acreageField.value;
@@ -495,6 +428,8 @@ ${summary}
     const generatedText = output.value;
 
     const debugInfo = `
+--- Development Debug Info ---
+
 parcelInfo Object:
 ${JSON.stringify(parcelInfo, null, 2)}
 
@@ -506,96 +441,18 @@ Form Inputs:
 - Length: ${lengthVal}
 - Zone Type: ${zoneTypeVal}
 
-Generated Plan Text (truncated):
-${generatedText.slice(0, 1200)}
+Generated Plan Text:
+${generatedText}
+
+Image Element:
+- src: ${generatedImage.src}
+- visible: ${generatedImage.style.display !== "none"}
+
+Loading State:
+- loadingText visible: ${loadingText.style.display !== "none"}
     `.trim();
 
-    infoModalText.textContent = debugInfo;
-  }
-
-  // ========== Socket.IO realtime (listen + toast + feed) ==========
-  const socket = io(RENDER_BASE_URL, { transports: ["websocket", "polling"] });
-
-  socket.on("connect", () => {
-    // Optional: identify client
-    // socket.emit("hello", { ua: navigator.userAgent });
-  });
-
-  socket.on("broadcast", (payload) => {
-    // payload could be { text, ts } per server implementation
-    const text = typeof payload === "object" && payload?.text ? payload.text : String(payload);
-    const ts = typeof payload === "object" && payload?.ts ? payload.ts : Date.now();
-    addBroadcastToFeed(text, ts);
-    showToast(text);
-  });
-
-  function addBroadcastToFeed(text, ts) {
-    if (!broadcastFeed) return;
-    const li = document.createElement("li");
-    const time = new Date(ts).toLocaleString();
-    li.innerHTML = `<div style="font-weight:600;">${escapeHtml(text)}</div><div class="muted" style="margin-top:4px;">${time}</div>`;
-    // Prepend newest on top
-    broadcastFeed.insertBefore(li, broadcastFeed.firstChild);
-  }
-
-  function escapeHtml(s) {
-    return s.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-
-  function showToast(msg) {
-    const bar = document.createElement("div");
-    bar.textContent = msg;
-    bar.style.cssText = `
-      position: fixed; left: 50%; transform: translateX(-50%);
-      bottom: 24px; max-width: 90vw;
-      background: #1a202c; color:#fff; padding: 12px 16px;
-      border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 2000;
-      font-weight:600; text-align:center;
-    `;
-    document.body.appendChild(bar);
-    setTimeout(() => {
-      bar.style.opacity = "0";
-      bar.style.transition = "opacity .4s ease";
-      setTimeout(() => bar.remove(), 400);
-    }, 4000);
-  }
-
-  // ========== Broadcast send (inside Ctrl+Y modal) ==========
-  bcSend.addEventListener("click", sendBroadcast);
-  bcText.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-      e.preventDefault();
-      sendBroadcast();
-    }
-  });
-
-  async function sendBroadcast() {
-    const text = (bcText.value || "").trim();
-    const passphrase = (bcPass.value || "").trim();
-    if (!text) { showBcError("Please enter a message."); return; }
-    if (!passphrase) { showBcError("Passphrase required."); return; }
-
-    try {
-      bcError.style.display = "none";
-      const res = await fetch(`${RENDER_BASE_URL}/broadcast`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, passphrase })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
-      // Optimistically add to feed
-      addBroadcastToFeed(text, Date.now());
-      bcText.value = "";
-      showToast("Broadcast sent");
-    } catch (err) {
-      showBcError("Failed to send: " + err.message);
-    }
-  }
-
-  function showBcError(msg) {
-    bcError.textContent = msg;
-    bcError.style.display = "block";
+    modalText.textContent = debugInfo;
   }
 </script>
 </body>
