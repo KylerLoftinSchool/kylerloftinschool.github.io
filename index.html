@@ -39,7 +39,8 @@
       color: #2d3748; box-shadow: inset 0 0 6px #cbd5e0; user-select: text;
     }
     textarea#output { resize: vertical; min-height: 180px; }
-    /* Modal */
+
+    /* Debug Modal */
     #infoModal {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000;
       justify-content: center; align-items: center; overflow: auto; padding: 40px 20px;
@@ -50,7 +51,18 @@
       max-height: 80vh; overflow-y: auto; color: #1a202c;
     }
     #infoModalClose { margin-top: 15px; text-align: right; font-size: 1rem; color: #3182ce; cursor: pointer; user-select: none; }
-    #buildingsSection { margin-bottom: 30px; }
+
+    /* Broadcast Modal */
+    #broadcastModal {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1001;
+      align-items:center; justify-content:center; padding:40px 20px;
+    }
+    #broadcastCard {
+      background:#fff; width:90%; max-width:560px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.3); padding:20px;
+    }
+    #broadcastCard h3 { margin-top:0; }
+    #broadcastError { margin-top:10px; color:#e53e3e; display:none; }
+
     #generatedImage {
       margin-top: 30px; max-width: 100%; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,.2);
     }
@@ -108,7 +120,7 @@
     <img id="generatedImage" alt="Generated site master plan visualization" style="display:none;" />
   </main>
 
-  <!-- Modal -->
+  <!-- Debug Modal -->
   <div id="infoModal">
     <div id="infoModalContent">
       <div id="infoModalText">Loading info...</div>
@@ -116,13 +128,31 @@
     </div>
   </div>
 
+  <!-- Broadcast Modal -->
+  <div id="broadcastModal">
+    <div id="broadcastCard">
+      <h3>Send Broadcast</h3>
+      <label style="display:block; font-weight:600; margin:.5rem 0;">Message</label>
+      <textarea id="broadcastText" rows="4" style="width:100%; padding:12px; border:2px solid #cbd5e0; border-radius:6px;"></textarea>
+      <label style="display:block; font-weight:600; margin:.5rem 0;">Passphrase</label>
+      <input id="broadcastPass" type="password" style="width:100%; padding:12px; border:2px solid #cbd5e0; border-radius:6px;" placeholder="Admin passphrase" />
+      <div style="display:flex; gap:10px; margin-top:14px;">
+        <button id="broadcastSend">Send</button>
+        <button id="broadcastCancel" style="background:#e2e8f0; color:#1a202c;">Cancel</button>
+      </div>
+      <div id="broadcastError"></div>
+      <p style="margin-top:10px; font-size:.9rem; color:#4a5568;">Tip: Open this with <strong>Ctrl+Shift+U</strong>.</p>
+    </div>
+  </div>
+
+  <!-- Socket.IO client -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-1E0k6uk6N3Qkq9+7cM7Oa8YvTq1TjvFVq1m7kQ2dK6XnH3sxovdc6qjD2P1xX5vG" crossorigin="anonymous"></script>
+
 <script>
   /**
-   * THE FOLLOWING LINES CONTAINS A BACK-END API KEY HOLDING SERVER. 
-   * THIS IS USED SO THE API KEY NEVER IS SEEN ON THE USER-END OF THE BROWSER.
-   * THIS PREVENTS THE USER FROM SEEING THE SENSITIVE API KEY.
+   * BACK-END API KEY HOLDING SERVER (Render). API key never touches the browser.
    */
-  const RENDER_BASE_URL = "https://openai-api-key-kx2c.onrender.com"; // ← THE SERVER ADDRESS (USING RENDER)
+  const RENDER_BASE_URL = "https://openai-api-key-kx2c.onrender.com"; // ← Your Render server URL
 
   let parcelInfo = null;
 
@@ -362,7 +392,6 @@ ${summary}
       });
 
       if (!res.ok) {
-        // Helpful message for common CORS/URL mistakes
         const msg = `Backend error (${res.status}). Check:
 - RENDER_BASE_URL is correct
 - Render CORS ALLOWED_ORIGIN matches your GitHub Pages URL
@@ -378,7 +407,6 @@ ${summary}
         return;
       }
 
-      // Support either {url} or {b64} from your backend
       if (data.url) {
         generatedImage.src = data.url;
       } else if (data.b64) {
@@ -454,6 +482,101 @@ Loading State:
 
     modalText.textContent = debugInfo;
   }
+
+  // ========= Realtime broadcast: client =========
+
+  // Socket.IO connection to your Render backend
+  const socket = io(RENDER_BASE_URL, { transports: ["websocket"] });
+
+  socket.on("connect", () => {
+    socket.emit("hello", { ua: navigator.userAgent });
+  });
+
+  // Render incoming broadcasts as a toast
+  socket.on("broadcast", ({ text, ts }) => {
+    showToast(text);
+    // Optionally append to debug modal as well
+    // output.value = `[Broadcast ${new Date(ts).toLocaleString()}] ${text}\n` + output.value;
+  });
+
+  // Simple toast UI
+  function showToast(msg) {
+    const bar = document.createElement("div");
+    bar.textContent = msg;
+    bar.style.cssText = `
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: 24px; max-width: 90vw;
+      background: #1a202c; color:#fff; padding: 12px 16px;
+      border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 2000;
+      font-weight:600; text-align:center;
+    `;
+    document.body.appendChild(bar);
+    setTimeout(() => {
+      bar.style.opacity = "0";
+      bar.style.transition = "opacity .4s ease";
+      setTimeout(() => bar.remove(), 400);
+    }, 4000);
+  }
+
+  // Broadcast modal controls
+  const bm = document.getElementById("broadcastModal");
+  const bText = document.getElementById("broadcastText");
+  const bPass = document.getElementById("broadcastPass");
+  const bSend = document.getElementById("broadcastSend");
+  const bCancel = document.getElementById("broadcastCancel");
+  const bErr = document.getElementById("broadcastError");
+
+  function openBroadcastModal() {
+    bText.value = "";
+    bPass.value = "";
+    bErr.style.display = "none";
+    bm.style.display = "flex";
+    setTimeout(() => bText.focus(), 0);
+  }
+  function closeBroadcastModal() {
+    bm.style.display = "none";
+  }
+
+  // Use Ctrl+Shift+U to avoid clashing with browser View Source on Ctrl+U
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "u") {
+      e.preventDefault();
+      openBroadcastModal();
+    }
+  });
+
+  bCancel.addEventListener("click", closeBroadcastModal);
+
+  async function sendBroadcast() {
+    const text = (bText.value || "").trim();
+    const passphrase = (bPass.value || "").trim();
+    if (!text) { bErr.textContent = "Please enter a message."; bErr.style.display = "block"; return; }
+    if (!passphrase) { bErr.textContent = "Passphrase required."; bErr.style.display = "block"; return; }
+
+    try {
+      const res = await fetch(`${RENDER_BASE_URL}/broadcast`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, passphrase })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+      closeBroadcastModal();
+      showToast("Broadcast sent.");
+    } catch (err) {
+      bErr.textContent = "Failed to send: " + err.message;
+      bErr.style.display = "block";
+    }
+  }
+  bSend.addEventListener("click", sendBroadcast);
+
+  // Optional: Ctrl+Enter to submit from message textarea
+  bText.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && e.key === "Enter") {
+      e.preventDefault();
+      sendBroadcast();
+    }
+  });
 </script>
 </body>
 </html>
