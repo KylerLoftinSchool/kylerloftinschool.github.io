@@ -116,13 +116,15 @@
     </div>
   </div>
 
+  <!-- Socket.IO client for realtime broadcast -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+
 <script>
   /**
-   * THE FOLLOWING LINES CONTAINS A BACK-END API KEY HOLDING SERVER. 
-   * THIS IS USED SO THE API KEY NEVER IS SEEN ON THE USER-END OF THE BROWSER.
-   * THIS PREVENTS THE USER FROM SEEING THE SENSITIVE API KEY.
+   * BACK-END: proxy server so the API key never touches the browser.
+   * Update to your Render URL.
    */
-  const RENDER_BASE_URL = "https://openai-api-key-kx2c.onrender.com"; // ← THE SERVER ADDRESS (USING RENDER)
+  const RENDER_BASE_URL = "https://openai-api-key-kx2c.onrender.com";
 
   let parcelInfo = null;
 
@@ -344,7 +346,6 @@ North is assumed to be up.
 
     const summary = summarizePlan(planText);
 
-    // The prompt goes to MY backend (Render). My key never touches the browser.
     const prompt = `
 Generate exactly what is described in the site plan. Nothing more. Only generate the set amount of buildings. One building counts as a separated structure. Generate a professional architectural site master plan in a top-down 2D view. Use only black, grey, and white colors. Show completed buildings with measurements (widths and lengths in feet). The style must be of a clean, minimalist blueprint or technical drawing with precise lines and legible text. Include only the number of buildings identified in the summary. Prior to sending the image, ensure there is the set amount of buildings. Strictly follow the details of the site plan.
 
@@ -362,7 +363,6 @@ ${summary}
       });
 
       if (!res.ok) {
-        // Helpful message for common CORS/URL mistakes
         const msg = `Backend error (${res.status}). Check:
 - RENDER_BASE_URL is correct
 - Render CORS ALLOWED_ORIGIN matches your GitHub Pages URL
@@ -378,7 +378,6 @@ ${summary}
         return;
       }
 
-      // Support either {url} or {b64} from your backend
       if (data.url) {
         generatedImage.src = data.url;
       } else if (data.b64) {
@@ -400,6 +399,7 @@ ${summary}
     document.getElementById("infoModal").style.display = "none";
   }
 
+  // Ctrl+Y to toggle modal (kept as-is)
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key.toLowerCase() === 'y') {
       e.preventDefault();
@@ -414,6 +414,9 @@ ${summary}
     } else {
       modal.style.display = "flex";
       updateDebugInfo();
+      ensureBroadcastSection(); // ← add broadcast UI without changing existing design
+      const t = document.getElementById("bcText");
+      if (t) setTimeout(() => t.focus(), 0);
     }
   }
 
@@ -453,6 +456,170 @@ Loading State:
     `.trim();
 
     modalText.textContent = debugInfo;
+  }
+
+  /* =========================
+     Broadcast: UI + Wiring
+     (injected into the same Ctrl+Y modal without altering its existing structure)
+     ========================= */
+  function ensureBroadcastSection() {
+    // If already added, do nothing
+    if (document.getElementById("broadcastSection")) return;
+
+    const content = document.getElementById("infoModalContent");
+
+    // Divider line to avoid altering existing design
+    const divider = document.createElement("div");
+    divider.style.cssText = "height:1px;background:#e2e8f0;margin:16px 0;";
+    content.insertBefore(divider, document.getElementById("infoModalClose"));
+
+    // Section container
+    const section = document.createElement("div");
+    section.id = "broadcastSection";
+    section.style.cssText = "font-family: inherit; white-space: normal;";
+
+    const title = document.createElement("h3");
+    title.textContent = "Broadcast";
+    title.style.marginTop = "10px";
+    section.appendChild(title);
+
+    // Message textarea
+    const ta = document.createElement("textarea");
+    ta.id = "bcText";
+    ta.rows = 4;
+    ta.placeholder = "Type a message to broadcast to all active sessions…";
+    ta.style.cssText = "width:100%;padding:12px;border:2px solid #cbd5e0;border-radius:6px;margin-top:8px;";
+    section.appendChild(ta);
+
+    // Passphrase + Send row
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:10px;align-items:center;margin-top:10px;";
+
+    const pass = document.createElement("input");
+    pass.id = "bcPass";
+    pass.type = "password";
+    pass.placeholder = "Admin passphrase";
+    pass.style.cssText = "flex:1;padding:12px;border:2px solid #cbd5e0;border-radius:6px;";
+    row.appendChild(pass);
+
+    const send = document.createElement("button");
+    send.id = "bcSend";
+    send.textContent = "Send";
+    // Button inherits base styles; just tighten margin
+    send.style.marginTop = "0";
+    row.appendChild(send);
+
+    section.appendChild(row);
+
+    // Error line
+    const err = document.createElement("div");
+    err.id = "bcError";
+    err.style.cssText = "color:#e53e3e;margin-top:8px;display:none;";
+    section.appendChild(err);
+
+    // Feed header
+    const feedHdr = document.createElement("div");
+    feedHdr.textContent = "Incoming broadcasts (newest first):";
+    feedHdr.style.cssText = "color:#718096;font-size:0.95rem;margin-top:14px;";
+    section.appendChild(feedHdr);
+
+    // Feed list
+    const feed = document.createElement("ul");
+    feed.id = "broadcastFeed";
+    feed.style.cssText = "list-style:none;padding:0;margin:8px 0 0 0;";
+    section.appendChild(feed);
+
+    // Insert above the existing Close link
+    content.insertBefore(section, document.getElementById("infoModalClose"));
+
+    // Wire events once UI exists
+    send.addEventListener("click", sendBroadcast);
+    ta.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        sendBroadcast();
+      }
+    });
+  }
+
+  function showBcError(msg) {
+    const el = document.getElementById("bcError");
+    if (!el) return;
+    el.textContent = msg;
+    el.style.display = "block";
+  }
+
+  function addBroadcastToFeed(text, ts) {
+    const ul = document.getElementById("broadcastFeed");
+    if (!ul) return;
+    const li = document.createElement("li");
+    li.style.cssText = "background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;margin-bottom:10px;line-height:1.4;font-size:0.95rem;";
+    const time = new Date(ts).toLocaleString();
+    li.innerHTML = `<div style="font-weight:600;">${escapeHtml(text)}</div><div style="color:#718096;margin-top:4px;">${time}</div>`;
+    ul.insertBefore(li, ul.firstChild);
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function showToast(msg) {
+    const bar = document.createElement("div");
+    bar.textContent = msg;
+    bar.style.cssText = `
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: 24px; max-width: 90vw;
+      background: #1a202c; color:#fff; padding: 12px 16px;
+      border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 2000;
+      font-weight:600; text-align:center;
+    `;
+    document.body.appendChild(bar);
+    setTimeout(() => {
+      bar.style.opacity = "0";
+      bar.style.transition = "opacity .4s ease";
+      setTimeout(() => bar.remove(), 400);
+    }, 4000);
+  }
+
+  // Socket.IO client connection (realtime receive)
+  const socket = io(RENDER_BASE_URL, { transports: ["websocket", "polling"] });
+  socket.on("broadcast", (payload) => {
+    const text = typeof payload === "object" && payload?.text ? payload.text : String(payload);
+    const ts = typeof payload === "object" && payload?.ts ? payload.ts : Date.now();
+    addBroadcastToFeed(text, ts);
+    showToast(text);
+  });
+
+  // Send broadcast to backend
+  async function sendBroadcast() {
+    const textEl = document.getElementById("bcText");
+    const passEl = document.getElementById("bcPass");
+    if (!textEl || !passEl) return;
+
+    const text = (textEl.value || "").trim();
+    const passphrase = (passEl.value || "").trim();
+
+    if (!text) { showBcError("Please enter a message."); return; }
+    if (!passphrase) { showBcError("Passphrase required."); return; }
+
+    try {
+      const res = await fetch(`${RENDER_BASE_URL}/broadcast`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, passphrase }) // must match your server route
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+
+      // optimistic UI
+      addBroadcastToFeed(text, Date.now());
+      textEl.value = "";
+      showToast("Broadcast sent");
+      const errEl = document.getElementById("bcError");
+      if (errEl) errEl.style.display = "none";
+    } catch (e) {
+      showBcError("Failed to send: " + e.message);
+    }
   }
 </script>
 </body>
