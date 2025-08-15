@@ -121,10 +121,11 @@
 
 <script>
   /**
-   * BACK-END: proxy server so the API key never touches the browser.
-   * Update to your Render URL.
+   * THE FOLLOWING LINES CONTAINS A BACK-END API KEY HOLDING SERVER. 
+   * THIS IS USED SO THE API KEY NEVER IS SEEN ON THE USER-END OF THE BROWSER.
+   * THIS PREVENTS THE USER FROM SEEING THE SENSITIVE API KEY.
    */
-  const RENDER_BASE_URL = "https://openai-api-key-kx2c.onrender.com";
+  const RENDER_BASE_URL = "https://openai-api-key-kx2c.onrender.com"; // ← THE SERVER ADDRESS (USING RENDER)
 
   let parcelInfo = null;
 
@@ -346,6 +347,7 @@ North is assumed to be up.
 
     const summary = summarizePlan(planText);
 
+    // The prompt goes to MY backend (Render). My key never touches the browser.
     const prompt = `
 Generate exactly what is described in the site plan. Nothing more. Only generate the set amount of buildings. One building counts as a separated structure. Generate a professional architectural site master plan in a top-down 2D view. Use only black, grey, and white colors. Show completed buildings with measurements (widths and lengths in feet). The style must be of a clean, minimalist blueprint or technical drawing with precise lines and legible text. Include only the number of buildings identified in the summary. Prior to sending the image, ensure there is the set amount of buildings. Strictly follow the details of the site plan.
 
@@ -363,6 +365,7 @@ ${summary}
       });
 
       if (!res.ok) {
+        // Helpful message for common CORS/URL mistakes
         const msg = `Backend error (${res.status}). Check:
 - RENDER_BASE_URL is correct
 - Render CORS ALLOWED_ORIGIN matches your GitHub Pages URL
@@ -378,6 +381,7 @@ ${summary}
         return;
       }
 
+      // Support either {url} or {b64} from your backend
       if (data.url) {
         generatedImage.src = data.url;
       } else if (data.b64) {
@@ -399,7 +403,7 @@ ${summary}
     document.getElementById("infoModal").style.display = "none";
   }
 
-  // Ctrl+Y to toggle modal (kept as-is)
+  // Keep your original Ctrl+Y toggle (design unchanged)
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key.toLowerCase() === 'y') {
       e.preventDefault();
@@ -414,7 +418,7 @@ ${summary}
     } else {
       modal.style.display = "flex";
       updateDebugInfo();
-      ensureBroadcastSection(); // ← add broadcast UI without changing existing design
+      ensureBroadcastSection();            // add broadcast UI (does not alter existing design)
       const t = document.getElementById("bcText");
       if (t) setTimeout(() => t.focus(), 0);
     }
@@ -459,16 +463,16 @@ Loading State:
   }
 
   /* =========================
-     Broadcast: UI + Wiring
-     (injected into the same Ctrl+Y modal without altering its existing structure)
+     Broadcast system (adds UI to the existing Ctrl+Y modal
+     without changing its overall design)
      ========================= */
   function ensureBroadcastSection() {
-    // If already added, do nothing
+    // If we've already added it, do nothing
     if (document.getElementById("broadcastSection")) return;
 
     const content = document.getElementById("infoModalContent");
 
-    // Divider line to avoid altering existing design
+    // Divider to separate existing debug info from broadcast controls
     const divider = document.createElement("div");
     divider.style.cssText = "height:1px;background:#e2e8f0;margin:16px 0;";
     content.insertBefore(divider, document.getElementById("infoModalClose"));
@@ -505,8 +509,7 @@ Loading State:
     const send = document.createElement("button");
     send.id = "bcSend";
     send.textContent = "Send";
-    // Button inherits base styles; just tighten margin
-    send.style.marginTop = "0";
+    send.style.marginTop = "0"; // use your global button styling
     row.appendChild(send);
 
     section.appendChild(row);
@@ -529,7 +532,7 @@ Loading State:
     feed.style.cssText = "list-style:none;padding:0;margin:8px 0 0 0;";
     section.appendChild(feed);
 
-    // Insert above the existing Close link
+    // Insert above existing Close link
     content.insertBefore(section, document.getElementById("infoModalClose"));
 
     // Wire events once UI exists
@@ -581,7 +584,7 @@ Loading State:
     }, 4000);
   }
 
-  // Socket.IO client connection (realtime receive)
+  // Socket.IO client: receive live broadcasts
   const socket = io(RENDER_BASE_URL, { transports: ["websocket", "polling"] });
   socket.on("broadcast", (payload) => {
     const text = typeof payload === "object" && payload?.text ? payload.text : String(payload);
@@ -606,17 +609,17 @@ Loading State:
       const res = await fetch(`${RENDER_BASE_URL}/broadcast`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, passphrase }) // must match your server route
+        body: JSON.stringify({ text, passphrase })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
 
-      // optimistic UI
+      // Optimistic UI update
       addBroadcastToFeed(text, Date.now());
       textEl.value = "";
-      showToast("Broadcast sent");
       const errEl = document.getElementById("bcError");
       if (errEl) errEl.style.display = "none";
+      showToast("Broadcast sent");
     } catch (e) {
       showBcError("Failed to send: " + e.message);
     }
